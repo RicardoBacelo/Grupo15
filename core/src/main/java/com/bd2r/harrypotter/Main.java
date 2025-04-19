@@ -10,9 +10,13 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.FitViewport;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main implements ApplicationListener {
 
@@ -29,10 +33,15 @@ public class Main implements ApplicationListener {
     float frameDuration = 0.2f;
 
     final int TILE_SIZE = 9;
-    int[][] Map; // só declarado aqui
+    int[][] Map;
+
+    List<Node> path = new ArrayList<>();
+    int currentStep = 0;
+    AStarPathfinder pathfinder;
+    float moveSpeed = 100f;
 
     @Override
-    public void create () {
+    public void create() {
         worldTexture = new Texture("mundo.png");
         characterTexture = new Texture("1.png");
         spriteBatch = new SpriteBatch();
@@ -41,11 +50,11 @@ public class Main implements ApplicationListener {
         characterSprite.setSize(32, 32);
         characterSprite.setPosition(0 * TILE_SIZE, 0 * TILE_SIZE);
 
-        characterTexture = new Texture("1.png");
         characterFrames = TextureRegion.split(characterTexture, 32, 32);
         currentFrame = characterFrames[0][1];
 
-        loadMap(); // <--- chamar aqui
+        loadMap();
+        pathfinder = new AStarPathfinder(Map);
     }
 
     private void loadMap() {
@@ -78,10 +87,50 @@ public class Main implements ApplicationListener {
     }
 
     @Override
-    public void render () {
+    public void render() {
+        if (Gdx.input.justTouched()) {
+            Vector2 worldClick = viewport.unproject(new Vector2(Gdx.input.getX(), Gdx.input.getY()));
+
+            int targetCol = (int)(worldClick.x / TILE_SIZE);
+            int targetRow = (int)(worldClick.y / TILE_SIZE);
+
+            int startCol = (int)(characterSprite.getX() / TILE_SIZE);
+            int startRow = (int)(characterSprite.getY() / TILE_SIZE);
+
+            path = pathfinder.findPath(startCol, startRow, targetCol, targetRow);
+            currentStep = 0;
+        }
+
+        moveAlongPath(Gdx.graphics.getDeltaTime());
         input();
         logic();
         draw();
+    }
+
+    private void moveAlongPath(float delta) {
+        if (path == null || currentStep >= path.size()) return;
+
+        Node target = path.get(currentStep);
+
+        float targetX = target.x * TILE_SIZE;
+        float targetY = target.y * TILE_SIZE;
+
+        float x = characterSprite.getX();
+        float y = characterSprite.getY();
+
+        float dx = targetX - x;
+        float dy = targetY - y;
+
+        float distance = (float)Math.sqrt(dx * dx + dy * dy);
+        if (distance < 1f) {
+            characterSprite.setPosition(targetX, targetY);
+            currentStep++;
+        } else {
+            float moveX = (dx / distance) * moveSpeed * delta;
+            float moveY = (dy / distance) * moveSpeed * delta;
+
+            characterSprite.setPosition(x + moveX, y + moveY);
+        }
     }
 
     private void draw() {
@@ -114,6 +163,8 @@ public class Main implements ApplicationListener {
     }
 
     private void input() {
+        if (path != null && currentStep < path.size()) return; // Desativa input se está a seguir caminho
+
         float speed = 200f;
         float delta = Gdx.graphics.getDeltaTime();
         boolean moving = false;
@@ -169,7 +220,7 @@ public class Main implements ApplicationListener {
     @Override
     public void resume() {}
     @Override
-    public void dispose () {
+    public void dispose() {
         characterTexture.dispose();
         worldTexture.dispose();
         spriteBatch.dispose();
