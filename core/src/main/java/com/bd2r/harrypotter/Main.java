@@ -32,7 +32,7 @@ public class Main implements ApplicationListener {
     float animationTimer = 0f;
     float frameDuration = 0.2f;
 
-    final int TILE_SIZE = 9;
+    final int TILE_SIZE = 16;
     int[][] Map;
 
     List<Node> path = new ArrayList<>();
@@ -44,11 +44,14 @@ public class Main implements ApplicationListener {
     public void create() {
         worldTexture = new Texture("mundo.png");
         characterTexture = new Texture("1.png");
+
+        // Janela de 800x600 visível
+        viewport = new FitViewport(800, 600);
         spriteBatch = new SpriteBatch();
-        viewport = new FitViewport(936, 1408);
+
         characterSprite = new Sprite(characterTexture);
-        characterSprite.setSize(32, 32);
-        characterSprite.setPosition(0 * TILE_SIZE, 0 * TILE_SIZE);
+        characterSprite.setSize(16, 16);
+        characterSprite.setPosition(30 * TILE_SIZE, 0 * TILE_SIZE);
 
         characterFrames = TextureRegion.split(characterTexture, 32, 32);
         currentFrame = characterFrames[0][1];
@@ -134,15 +137,28 @@ public class Main implements ApplicationListener {
     }
 
     private void draw() {
-        ScreenUtils.clear(Color.BLACK);
+        ScreenUtils.clear(Color.BLUE);
         viewport.apply();
+
+        // Limitar câmara aos limites do mapa
+        float cameraHalfWidth = viewport.getWorldWidth() / 2f;
+        float cameraHalfHeight = viewport.getWorldHeight() / 2f;
+        float worldWidth = worldTexture.getWidth();
+        float worldHeight = worldTexture.getHeight();
+
+        float cameraX = characterSprite.getX() + characterSprite.getWidth() / 2f;
+        float cameraY = characterSprite.getY() + characterSprite.getHeight() / 2f;
+
+        cameraX = MathUtils.clamp(cameraX, cameraHalfWidth, worldWidth - cameraHalfWidth);
+        cameraY = MathUtils.clamp(cameraY, cameraHalfHeight, worldHeight - cameraHalfHeight);
+
+        viewport.getCamera().position.set(cameraX, cameraY, 0);
+        viewport.getCamera().update();
+
         spriteBatch.setProjectionMatrix(viewport.getCamera().combined);
         spriteBatch.begin();
 
-        float worldWidth = viewport.getWorldWidth();
-        float worldHeight = viewport.getWorldHeight();
-
-        spriteBatch.draw(worldTexture, 0, 0, worldWidth, worldHeight);
+        spriteBatch.draw(worldTexture, 0, 0);
         spriteBatch.draw(currentFrame,
             characterSprite.getX(),
             characterSprite.getY(),
@@ -153,8 +169,8 @@ public class Main implements ApplicationListener {
     }
 
     private void logic() {
-        float worldWidth = viewport.getWorldWidth();
-        float worldHeight = viewport.getWorldHeight();
+        float worldWidth = worldTexture.getWidth();
+        float worldHeight = worldTexture.getHeight();
         float characterWidth = characterSprite.getWidth();
         float characterHeight = characterSprite.getHeight();
 
@@ -163,7 +179,7 @@ public class Main implements ApplicationListener {
     }
 
     private void input() {
-        if (path != null && currentStep < path.size()) return; // Desativa input se está a seguir caminho
+        if (path != null && currentStep < path.size()) return;
 
         float speed = 200f;
         float delta = Gdx.graphics.getDeltaTime();
@@ -226,3 +242,5 @@ public class Main implements ApplicationListener {
         spriteBatch.dispose();
     }
 }
+
+
