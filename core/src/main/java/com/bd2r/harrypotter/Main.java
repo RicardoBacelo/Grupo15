@@ -46,7 +46,7 @@ public class Main implements ApplicationListener {
         characterTexture = new Texture("1.png");
 
         // Janela de 800x600 visível
-        viewport = new FitViewport(800, 600);
+        viewport = new FitViewport(450, 450);
         spriteBatch = new SpriteBatch();
 
         characterSprite = new Sprite(characterTexture);
